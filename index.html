@@ -172,6 +172,17 @@
         setNewCountry({ name: '', era: 'Present', continent: '' });
       };
 
+      const handleDeleteCountry = (countryId, countryName, e) => {
+        e.stopPropagation(); // Prevents triggering filter select on card click
+        if (confirm(`Are you sure you want to delete "${countryName}"? This will also remove all associated timeline events and periods.`)) {
+          setCountries(countries.filter((c) => c.id !== countryId));
+          setEvents(events.filter((ev) => ev.countryId !== countryId));
+          if (selectedCountry === countryId) {
+            setSelectedCountry('ALL');
+          }
+        }
+      };
+
       const filteredEvents = useMemo(() => {
         return events
           .filter((ev) => {
@@ -271,11 +282,21 @@
                   <div
                     key={c.id}
                     onClick={() => setSelectedCountry(selectedCountry === c.id ? 'ALL' : c.id)}
-                    className={`p-3 rounded-lg border cursor-pointer ${selectedCountry === c.id ? 'bg-emerald-950/40 border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
+                    className={`p-3 rounded-lg border cursor-pointer group transition ${selectedCountry === c.id ? 'bg-emerald-950/40 border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
                   >
                     <div className="flex justify-between items-center text-sm font-semibold text-slate-200">
                       <span>{c.name}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">{c.era}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">{c.era}</span>
+                        {/* Remove Country Button */}
+                        <button
+                          onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
+                          title="Delete country"
+                          className="opacity-60 group-hover:opacity-100 hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -376,7 +397,7 @@
             </div>
           </div>
 
-          {/* Add / Edit Modal */}
+          {/* Add / Edit Event Modal */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
