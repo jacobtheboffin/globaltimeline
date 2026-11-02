@@ -37,6 +37,9 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
+    const AUTH_USER = "jacobtheboffin";
+    const AUTH_PASS = "Gemini";
+
     const CATEGORIES = {
       War: { label: 'War', bg: 'bg-red-950/80', border: 'border-red-600', badge: 'bg-red-900/60 text-red-300 border-red-700', highlight: 'bg-red-950/30 border-red-800/40' },
       Invasion: { label: 'Invasion', bg: 'bg-amber-950/80', border: 'border-amber-600', badge: 'bg-amber-900/60 text-amber-300 border-amber-700', highlight: 'bg-amber-950/30 border-amber-800/40' },
@@ -67,6 +70,14 @@
     ];
 
     function App() {
+      const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        return localStorage.getItem('world_history_auth') === 'true';
+      });
+      const [showLoginModal, setShowLoginModal] = useState(false);
+      const [loginUser, setLoginUser] = useState('');
+      const [loginPass, setLoginPass] = useState('');
+      const [loginError, setLoginError] = useState('');
+
       const [countries, setCountries] = useState(() => {
         const saved = localStorage.getItem('world_history_countries');
         return saved ? JSON.parse(saved) : INITIAL_COUNTRIES;
@@ -75,6 +86,11 @@
       const [events, setEvents] = useState(() => {
         const saved = localStorage.getItem('world_history_events');
         return saved ? JSON.parse(saved) : INITIAL_EVENTS;
+      });
+
+      // Track the last country used for adding an event
+      const [lastUsedCountryId, setLastUsedCountryId] = useState(() => {
+        return localStorage.getItem('world_history_last_country') || '';
       });
 
       useEffect(() => {
@@ -107,6 +123,25 @@
 
       const [newCountry, setNewCountry] = useState({ name: '', era: 'Present', continent: '' });
 
+      const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        if (loginUser === AUTH_USER && loginPass === AUTH_PASS) {
+          setIsLoggedIn(true);
+          localStorage.setItem('world_history_auth', 'true');
+          setShowLoginModal(false);
+          setLoginError('');
+          setLoginUser('');
+          setLoginPass('');
+        } else {
+          setLoginError('Invalid username or password');
+        }
+      };
+
+      const handleLogout = () => {
+        setIsLoggedIn(false);
+        localStorage.removeItem('world_history_auth');
+      };
+
       const formatYear = (year) => {
         if (year === null || year === '' || isNaN(year)) return '';
         const y = Number(year);
@@ -115,7 +150,22 @@
 
       const openAddModal = () => {
         setEditingItem(null);
-        setFormData({ countryId: countries[0]?.id || '', title: '', yearStart: '', yearEnd: '', category: 'War', type: 'Event', description: '', tags: '' });
+        // Default to the last used country, or fallback to selected filter country, or fallback to first country
+        const defaultCountry = 
+          (lastUsedCountryId && countries.some(c => c.id === lastUsedCountryId) && lastUsedCountryId) ||
+          (selectedCountry !== 'ALL' && selectedCountry) ||
+          (countries[0]?.id || '');
+
+        setFormData({ 
+          countryId: defaultCountry, 
+          title: '', 
+          yearStart: '', 
+          yearEnd: '', 
+          category: 'War', 
+          type: 'Event', 
+          description: '', 
+          tags: '' 
+        });
         setIsModalOpen(true);
       };
 
@@ -154,6 +204,9 @@
           setEvents(events.map((ev) => (ev.id === editingItem.id ? payload : ev)));
         } else {
           setEvents([...events, payload]);
+          // Remember last used country when a new item is added
+          setLastUsedCountryId(formData.countryId);
+          localStorage.setItem('world_history_last_country', formData.countryId);
         }
         setIsModalOpen(false);
       };
@@ -167,18 +220,23 @@
       const handleAddCountry = (e) => {
         e.preventDefault();
         if (!newCountry.name) return;
-        setCountries([...countries, { id: 'c_' + Date.now(), name: newCountry.name, era: newCountry.era, continent: newCountry.continent || 'Global' }]);
+        const newId = 'c_' + Date.now();
+        setCountries([...countries, { id: newId, name: newCountry.name, era: newCountry.era, continent: newCountry.continent || 'Global' }]);
         setIsAddingCountry(false);
         setNewCountry({ name: '', era: 'Present', continent: '' });
       };
 
       const handleDeleteCountry = (countryId, countryName, e) => {
-        e.stopPropagation(); // Prevents triggering filter select on card click
+        e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${countryName}"? This will also remove all associated timeline events and periods.`)) {
           setCountries(countries.filter((c) => c.id !== countryId));
           setEvents(events.filter((ev) => ev.countryId !== countryId));
           if (selectedCountry === countryId) {
             setSelectedCountry('ALL');
+          }
+          if (lastUsedCountryId === countryId) {
+            setLastUsedCountryId('');
+            localStorage.removeItem('world_history_last_country');
           }
         }
       };
@@ -224,9 +282,16 @@
               </h1>
               <p className="text-slate-400 text-sm mt-1">Relative spacing, events, and period background highlights across nations.</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button onClick={() => setIsAddingCountry(true)} className="px-4 py-2 bg-slate-800 text-slate-200 text-sm rounded-lg border border-slate-700 hover:bg-slate-700">+ Add Nation</button>
-              <button onClick={openAddModal} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500 font-semibold">+ Insert Event / Period</button>
+            <div className="flex flex-wrap items-center gap-3">
+              {isLoggedIn ? (
+                <>
+                  <button onClick={() => setIsAddingCountry(true)} className="px-4 py-2 bg-slate-800 text-slate-200 text-sm rounded-lg border border-slate-700 hover:bg-slate-700">+ Add Nation</button>
+                  <button onClick={openAddModal} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500 font-semibold">+ Insert Event / Period</button>
+                  <button onClick={handleLogout} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-semibold rounded-lg border border-red-800">Logout</button>
+                </>
+              ) : (
+                <button onClick={() => setShowLoginModal(true)} className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-lg shadow-lg">🔒 Login to Edit</button>
+              )}
               <button onClick={exportJSON} className="px-3 py-2 bg-slate-800 text-slate-300 text-xs font-mono rounded-lg border border-slate-700">Export JSON</button>
             </div>
           </header>
@@ -288,14 +353,15 @@
                       <span>{c.name}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">{c.era}</span>
-                        {/* Remove Country Button */}
-                        <button
-                          onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
-                          title="Delete country"
-                          className="opacity-60 group-hover:opacity-100 hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
-                        >
-                          ✕
-                        </button>
+                        {isLoggedIn && (
+                          <button
+                            onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
+                            title="Delete country"
+                            className="opacity-60 group-hover:opacity-100 hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -316,7 +382,6 @@
                     const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
                     const isPeriod = ev.type === 'Period' || ev.yearEnd !== null;
 
-                    // Relative distance calculations
                     let marginTopPx = 0;
                     if (idx > 0) {
                       const prevYear = filteredEvents[idx - 1].yearStart;
@@ -324,7 +389,6 @@
                       marginTopPx = Math.min(Math.max(yearDiff * 1.5, 12), 160);
                     }
 
-                    // Check which active Period background highlights cover this event
                     const overlappingPeriods = activePeriods.filter(
                       (p) => p.id !== ev.id && ev.yearStart >= p.yearStart && ev.yearStart <= p.yearEnd
                     );
@@ -335,7 +399,6 @@
                         style={{ marginTop: `${marginTopPx}px` }}
                         className="relative group transition-all"
                       >
-                        {/* Dynamic Period Background Highlight */}
                         {overlappingPeriods.map((period) => {
                           const pStyle = CATEGORIES[period.category] || CATEGORIES['Era/Economic'];
                           return (
@@ -350,10 +413,8 @@
                           );
                         })}
 
-                        {/* Node Bullet Point */}
                         <div className={`absolute -left-[31px] top-4 w-4 h-4 rounded-full border-2 ${catStyle.border} bg-slate-950 z-10`}></div>
 
-                        {/* Event / Period Card */}
                         <div className={`relative z-10 p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md`}>
                           <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
                             <div className="flex items-center gap-2">
@@ -368,21 +429,22 @@
                               </span>
                             </div>
 
-                            {/* Action Buttons: EDIT & DELETE */}
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => openEditModal(ev)}
-                                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium rounded border border-slate-700 transition"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteItem(ev.id)}
-                                className="px-2.5 py-1 bg-red-950/80 hover:bg-red-900 text-red-300 text-xs font-medium rounded border border-red-800 transition"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                            {isLoggedIn && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => openEditModal(ev)}
+                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium rounded border border-slate-700 transition"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(ev.id)}
+                                  className="px-2.5 py-1 bg-red-950/80 hover:bg-red-900 text-red-300 text-xs font-medium rounded border border-red-800 transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
 
                           <h4 className="text-lg font-bold text-white mb-1">{ev.title}</h4>
@@ -396,6 +458,43 @@
               )}
             </div>
           </div>
+
+          {/* Login Modal */}
+          {showLoginModal && (
+            <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-sm w-full shadow-2xl">
+                <h3 className="text-xl font-bold text-white mb-2">Admin Login</h3>
+                <p className="text-xs text-slate-400 mb-4">Enter credentials to unlock timeline editing features.</p>
+                {loginError && <div className="mb-3 p-2 bg-red-950 border border-red-800 text-red-300 text-xs rounded">{loginError}</div>}
+                <form onSubmit={handleLoginSubmit} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Username</label>
+                    <input
+                      type="text"
+                      required
+                      value={loginUser}
+                      onChange={(e) => setLoginUser(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Password</label>
+                    <input
+                      type="password"
+                      required
+                      value={loginPass}
+                      onChange={(e) => setLoginPass(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={() => setShowLoginModal(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded font-medium">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded font-semibold">Login</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Add / Edit Event Modal */}
           {isModalOpen && (
