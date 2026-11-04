@@ -88,7 +88,6 @@
         return saved ? JSON.parse(saved) : INITIAL_EVENTS;
       });
 
-      // Track the last country used for adding an event
       const [lastUsedCountryId, setLastUsedCountryId] = useState(() => {
         return localStorage.getItem('world_history_last_country') || '';
       });
@@ -150,7 +149,6 @@
 
       const openAddModal = () => {
         setEditingItem(null);
-        // Default to the last used country, or fallback to selected filter country, or fallback to first country
         const defaultCountry = 
           (lastUsedCountryId && countries.some(c => c.id === lastUsedCountryId) && lastUsedCountryId) ||
           (selectedCountry !== 'ALL' && selectedCountry) ||
@@ -193,7 +191,7 @@
           countryId: formData.countryId,
           title: formData.title,
           yearStart: parseInt(formData.yearStart, 10),
-          yearEnd: formData.yearEnd !== '' ? parseInt(formData.yearEnd, 10) : null,
+          yearEnd: formData.type === 'Period' && formData.yearEnd !== '' ? parseInt(formData.yearEnd, 10) : null,
           category: formData.category,
           type: formData.type,
           description: formData.description,
@@ -204,7 +202,6 @@
           setEvents(events.map((ev) => (ev.id === editingItem.id ? payload : ev)));
         } else {
           setEvents([...events, payload]);
-          // Remember last used country when a new item is added
           setLastUsedCountryId(formData.countryId);
           localStorage.setItem('world_history_last_country', formData.countryId);
         }
@@ -496,18 +493,18 @@
             </div>
           )}
 
-          {/* Add / Edit Event Modal */}
+          {/* Add / Edit Event / Period Modal */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
                 <h3 className="text-xl font-bold text-white mb-4">{editingItem ? 'Edit Timeline Item' : 'Add Timeline Item'}</h3>
                 <form onSubmit={handleSaveItem} className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Item Type</label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Item Type *</label>
                     <select
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     >
                       <option value="Event">Event (Single Point in Time)</option>
                       <option value="Period">Period (Multi-Year Range Highlight)</option>
@@ -520,7 +517,7 @@
                       required
                       value={formData.countryId}
                       onChange={(e) => setFormData({ ...formData, countryId: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     >
                       <option value="">Select country...</option>
                       {countries.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -532,10 +529,10 @@
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Pax Romana"
+                      placeholder={formData.type === 'Event' ? "e.g. Battle of Waterloo" : "e.g. Pax Romana"}
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
 
@@ -548,17 +545,20 @@
                         placeholder="-27 or 1945"
                         value={formData.yearStart}
                         onChange={(e) => setFormData({ ...formData, yearStart: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">End Year (Required for Period)</label>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1">
+                        End Year {formData.type === 'Period' ? '(Required)' : '(Optional)'}
+                      </label>
                       <input
                         type="number"
-                        placeholder="e.g. 180"
+                        placeholder={formData.type === 'Period' ? "e.g. 180" : "Leave blank if Event"}
+                        required={formData.type === 'Period'}
                         value={formData.yearEnd}
                         onChange={(e) => setFormData({ ...formData, yearEnd: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                        className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                   </div>
@@ -568,7 +568,7 @@
                     <select
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     >
                       {Object.keys(CATEGORIES).map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
                     </select>
@@ -580,13 +580,13 @@
                       placeholder="Context and notes..."
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200"
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     ></textarea>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded font-medium">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-emerald-600 text-white text-xs rounded font-semibold">{editingItem ? 'Update Item' : 'Save Item'}</button>
+                    <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded font-semibold">{editingItem ? 'Update Item' : 'Save Item'}</button>
                   </div>
                 </form>
               </div>
@@ -608,7 +608,7 @@
                   <input type="text" placeholder="Continent / Region" value={newCountry.continent} onChange={(e) => setNewCountry({ ...newCountry, continent: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200" />
                   <div className="flex justify-end gap-2 pt-2">
                     <button type="button" onClick={() => setIsAddingCountry(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded font-medium">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-emerald-600 text-white text-xs rounded font-semibold">Save Country</button>
+                    <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded font-semibold">Save Country</button>
                   </div>
                 </form>
               </div>
