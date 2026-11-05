@@ -35,7 +35,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo, useEffect, useRef } = React;
 
     const AUTH_USER = "jacobtheboffin";
     const AUTH_PASS = "Gemini";
@@ -53,7 +53,13 @@
       Skirmish: { label: 'Skirmish', bg: 'bg-orange-950/80', border: 'border-orange-600', badge: 'bg-orange-900/60 text-orange-300 border-orange-700', highlight: 'bg-orange-950/30 border-orange-800/40' },
       Event: { label: 'Event', bg: 'bg-stone-900/90', border: 'border-stone-600', badge: 'bg-stone-800 text-stone-300 border-stone-600', highlight: 'bg-stone-900/40 border-stone-700/40' },
       Raid: { label: 'Raid', bg: 'bg-fuchsia-950/80', border: 'border-fuchsia-600', badge: 'bg-fuchsia-900/60 text-fuchsia-300 border-fuchsia-700', highlight: 'bg-fuchsia-950/30 border-fuchsia-800/40' },
+      Settled: { label: 'Settled', bg: 'bg-lime-950/80', border: 'border-lime-600', badge: 'bg-lime-900/60 text-lime-300 border-lime-700', highlight: 'bg-lime-950/30 border-lime-800/40' },
+      Claim: { label: 'Claim', bg: 'bg-sky-950/80', border: 'border-sky-600', badge: 'bg-sky-900/60 text-sky-300 border-sky-700', highlight: 'bg-sky-950/30 border-sky-800/40' },
+      'Surrender/Loss': { label: 'Surrender / Loss', bg: 'bg-zinc-950/80', border: 'border-zinc-600', badge: 'bg-zinc-900/60 text-zinc-300 border-zinc-700', highlight: 'bg-zinc-950/30 border-zinc-700/40' },
+      Purchase: { label: 'Purchase', bg: 'bg-emerald-900/80', border: 'border-emerald-500', badge: 'bg-emerald-800/60 text-emerald-200 border-emerald-600', highlight: 'bg-emerald-900/30 border-emerald-700/40' },
     };
+
+    const MILITARY_CATEGORIES = ['War', 'Invasion', 'Skirmish', 'Raid', 'Civil War'];
 
     const INITIAL_COUNTRIES = [
       { id: 'c1', name: 'Roman Empire', era: 'Past', continent: 'Europe / Mediterranean' },
@@ -64,12 +70,84 @@
     ];
 
     const INITIAL_EVENTS = [
-      { id: 'e1', countryId: 'c1', title: 'Pax Romana Period', yearStart: -27, yearEnd: 180, category: 'Era/Economic', type: 'Period', description: 'Golden age of Roman peace and stability spanning two centuries.', tags: 'Empire, Golden Age' },
-      { id: 'e2', countryId: 'c1', title: 'Establishment of Roman Empire', yearStart: -27, yearEnd: null, category: 'Founding', type: 'Event', description: 'Augustus becomes the first emperor.', tags: 'Augustus' },
-      { id: 'e3', countryId: 'c1', title: 'Construction of the Colosseum', yearStart: 70, yearEnd: 80, category: 'Building', type: 'Period', description: 'Amphitheatre construction initiated under Vespasian.', tags: 'Architecture' },
-      { id: 'e4', countryId: 'c2', title: 'Mongol Invasions of Japan', yearStart: 1274, yearEnd: 1281, category: 'Invasion', type: 'Period', description: 'Kublai Khan attempts invasions defeated by Kamikaze typhoons.', tags: 'Mongols' },
-      { id: 'e5', countryId: 'c3', title: 'American Civil War', yearStart: 1861, yearEnd: 1865, category: 'Civil War', type: 'Period', description: 'Internal conflict between Northern Union and Southern Confederacy.', tags: 'Lincoln' },
+      { id: 'e1', countryId: 'c1', title: 'Pax Romana Period', yearStart: -27, yearEnd: 180, category: 'Era/Economic', type: 'Period', description: 'Golden age of Roman peace and stability spanning two centuries.', tags: 'Empire, Golden Age', outcome: '' },
+      { id: 'e2', countryId: 'c1', title: 'Establishment of Roman Empire', yearStart: -27, yearEnd: null, category: 'Founding', type: 'Event', description: 'Augustus becomes the first emperor.', tags: 'Augustus', outcome: '' },
+      { id: 'e3', countryId: 'c3', title: 'Louisiana Purchase', yearStart: 1803, yearEnd: null, category: 'Purchase', type: 'Event', description: 'Acquisition of the territory of Louisiana from France.', tags: 'Territory, France', outcome: '' },
     ];
+
+    function SearchableDropdown({ countries, value, onChange, placeholder = "Select country..." }) {
+      const [isOpen, setIsOpen] = useState(false);
+      const [searchTerm, setSearchTerm] = useState('');
+      const wrapperRef = useRef(null);
+
+      const sortedCountries = useMemo(() => {
+        return [...countries].sort((a, b) => a.name.localeCompare(b.name));
+      }, [countries]);
+
+      const filtered = useMemo(() => {
+        if (!searchTerm) return sortedCountries;
+        return sortedCountries.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      }, [sortedCountries, searchTerm]);
+
+      const selectedCountry = countries.find(c => c.id === value);
+
+      useEffect(() => {
+        function handleClickOutside(event) {
+          if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+            setIsOpen(false);
+          }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className="relative" ref={wrapperRef}>
+          <div
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 cursor-pointer flex justify-between items-center"
+          >
+            <span>{selectedCountry ? `${selectedCountry.name} (${selectedCountry.era})` : placeholder}</span>
+            <span className="text-xs text-slate-400">▼</span>
+          </div>
+
+          {isOpen && (
+            <div className="absolute z-50 mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
+              <div className="p-2 border-b border-slate-800 sticky top-0 bg-slate-900">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type to search country..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="py-1">
+                {filtered.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-500">No matching countries found</div>
+                ) : (
+                  filtered.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => {
+                        onChange(c.id);
+                        setIsOpen(false);
+                        setSearchTerm('');
+                      }}
+                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-800 flex justify-between items-center ${value === c.id ? 'bg-emerald-950/60 text-emerald-300 font-medium' : 'text-slate-200'}`}
+                    >
+                      <span>{c.name}</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest">{c.era}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     function App() {
       const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -120,9 +198,14 @@
         type: 'Event',
         description: '',
         tags: '',
+        outcome: '',
       });
 
       const [newCountry, setNewCountry] = useState({ name: '', era: 'Present', continent: '' });
+
+      const sortedCountriesAlphabetical = useMemo(() => {
+        return [...countries].sort((a, b) => a.name.localeCompare(b.name));
+      }, [countries]);
 
       const handleLoginSubmit = (e) => {
         e.preventDefault();
@@ -164,7 +247,8 @@
           category: 'War', 
           type: 'Event', 
           description: '', 
-          tags: '' 
+          tags: '',
+          outcome: '',
         });
         setIsModalOpen(true);
       };
@@ -180,6 +264,7 @@
           type: item.type || (item.yearEnd ? 'Period' : 'Event'),
           description: item.description || '',
           tags: item.tags || '',
+          outcome: item.outcome || '',
         });
         setIsModalOpen(true);
       };
@@ -187,6 +272,8 @@
       const handleSaveItem = (e) => {
         e.preventDefault();
         if (!formData.title || !formData.countryId || formData.yearStart === '') return;
+
+        const isMilitary = MILITARY_CATEGORIES.includes(formData.category);
 
         const payload = {
           id: editingItem ? editingItem.id : 'e_' + Date.now(),
@@ -198,6 +285,7 @@
           type: formData.type,
           description: formData.description,
           tags: formData.tags,
+          outcome: isMilitary ? formData.outcome : '',
         };
 
         if (editingItem) {
@@ -320,14 +408,16 @@
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
             />
-            <select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            >
-              <option value="ALL">All Nations / Empires</option>
-              {countries.map((c) => (<option key={c.id} value={c.id}>{c.name} ({c.era})</option>))}
-            </select>
+            <div className="flex flex-col">
+              <select
+                value={selectedCountry}
+                onChange={(e) => setSelectedCountry(e.target.value)}
+                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
+              >
+                <option value="ALL">All Nations / Empires</option>
+                {sortedCountriesAlphabetical.map((c) => (<option key={c.id} value={c.id}>{c.name} ({c.era})</option>))}
+              </select>
+            </div>
             <button
               onClick={() => setSortAscending(!sortAscending)}
               className="bg-slate-900 border border-slate-800 text-slate-300 py-2 px-3 rounded-lg text-sm hover:bg-slate-800"
@@ -342,7 +432,7 @@
             <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 h-fit">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Nations Roster ({countries.length})</h3>
               <div className="space-y-2">
-                {countries.map((c) => (
+                {sortedCountriesAlphabetical.map((c) => (
                   <div
                     key={c.id}
                     onClick={() => setSelectedCountry(selectedCountry === c.id ? 'ALL' : c.id)}
@@ -416,7 +506,7 @@
 
                         <div className={`relative z-10 p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md`}>
                           <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
                                 {formatYear(ev.yearStart)}{ev.yearEnd ? ` – ${formatYear(ev.yearEnd)}` : ''}
                               </span>
@@ -426,6 +516,15 @@
                               <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">
                                 {isPeriod ? 'Period Range' : 'Single Event'}
                               </span>
+                              {ev.outcome && (
+                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
+                                  ev.outcome === 'Win' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
+                                  ev.outcome === 'Loss' ? 'bg-red-950 text-red-300 border-red-700' :
+                                  'bg-amber-950 text-amber-300 border-amber-700'
+                                }`}>
+                                  Outcome: {ev.outcome}
+                                </span>
+                              )}
                             </div>
 
                             {isLoggedIn && (
@@ -515,15 +614,12 @@
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Nation / Empire *</label>
-                    <select
-                      required
+                    <SearchableDropdown
+                      countries={countries}
                       value={formData.countryId}
-                      onChange={(e) => setFormData({ ...formData, countryId: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-                    >
-                      <option value="">Select country...</option>
-                      {countries.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-                    </select>
+                      onChange={(id) => setFormData({ ...formData, countryId: id })}
+                      placeholder="Search and select country..."
+                    />
                   </div>
 
                   <div>
@@ -575,6 +671,23 @@
                       {Object.keys(CATEGORIES).map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
                     </select>
                   </div>
+
+                  {/* Outcome Selector (Visible for Military Categories) */}
+                  {MILITARY_CATEGORIES.includes(formData.category) && (
+                    <div>
+                      <label className="block text-xs font-semibold text-amber-400 mb-1">Military Outcome</label>
+                      <select
+                        value={formData.outcome}
+                        onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
+                        className="w-full bg-slate-950 border border-amber-800/60 rounded px-3 py-2 text-sm text-amber-200 focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="">None / Not Applicable</option>
+                        <option value="Win">Win</option>
+                        <option value="Loss">Loss</option>
+                        <option value="Draw">Draw</option>
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Description</label>
