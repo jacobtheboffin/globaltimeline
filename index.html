@@ -48,6 +48,11 @@
       'Civil War': { label: 'Civil War', bg: 'bg-rose-950/80', border: 'border-rose-600', badge: 'bg-rose-900/60 text-rose-300 border-rose-700', highlight: 'bg-rose-950/30 border-rose-800/40' },
       'Policy/Treaty': { label: 'Policy / Treaty', bg: 'bg-cyan-950/80', border: 'border-cyan-600', badge: 'bg-cyan-900/60 text-cyan-300 border-cyan-700', highlight: 'bg-cyan-950/30 border-cyan-800/40' },
       'Era/Economic': { label: 'Era / Economic', bg: 'bg-teal-950/80', border: 'border-teal-600', badge: 'bg-teal-900/60 text-teal-300 border-teal-700', highlight: 'bg-teal-950/30 border-teal-800/40' },
+      Building: { label: 'Building', bg: 'bg-blue-950/80', border: 'border-blue-600', badge: 'bg-blue-900/60 text-blue-300 border-blue-700', highlight: 'bg-blue-950/30 border-blue-800/40' },
+      Transfer: { label: 'Transfer', bg: 'bg-indigo-950/80', border: 'border-indigo-600', badge: 'bg-indigo-900/60 text-indigo-300 border-indigo-700', highlight: 'bg-indigo-950/30 border-indigo-800/40' },
+      Skirmish: { label: 'Skirmish', bg: 'bg-orange-950/80', border: 'border-orange-600', badge: 'bg-orange-900/60 text-orange-300 border-orange-700', highlight: 'bg-orange-950/30 border-orange-800/40' },
+      Event: { label: 'Event', bg: 'bg-stone-900/90', border: 'border-stone-600', badge: 'bg-stone-800 text-stone-300 border-stone-600', highlight: 'bg-stone-900/40 border-stone-700/40' },
+      Raid: { label: 'Raid', bg: 'bg-fuchsia-950/80', border: 'border-fuchsia-600', badge: 'bg-fuchsia-900/60 text-fuchsia-300 border-fuchsia-700', highlight: 'bg-fuchsia-950/30 border-fuchsia-800/40' },
     };
 
     const INITIAL_COUNTRIES = [
@@ -61,12 +66,9 @@
     const INITIAL_EVENTS = [
       { id: 'e1', countryId: 'c1', title: 'Pax Romana Period', yearStart: -27, yearEnd: 180, category: 'Era/Economic', type: 'Period', description: 'Golden age of Roman peace and stability spanning two centuries.', tags: 'Empire, Golden Age' },
       { id: 'e2', countryId: 'c1', title: 'Establishment of Roman Empire', yearStart: -27, yearEnd: null, category: 'Founding', type: 'Event', description: 'Augustus becomes the first emperor.', tags: 'Augustus' },
-      { id: 'e3', countryId: 'c1', title: 'Eruption of Mount Vesuvius', yearStart: 79, yearEnd: null, category: 'Disaster', type: 'Event', description: 'Destruction of Pompeii and Herculaneum.', tags: 'Pompeii' },
-      { id: 'e4', countryId: 'c1', title: 'Crisis of the Third Century', yearStart: 235, yearEnd: 284, category: 'Civil War', type: 'Period', description: 'Fifty years of extreme civil instability and economic disruption.', tags: 'Crisis' },
-      { id: 'e5', countryId: 'c2', title: 'Mongol Invasions of Japan', yearStart: 1274, yearEnd: 1281, category: 'Invasion', type: 'Period', description: 'Kublai Khan attempts invasions defeated by Kamikaze typhoons.', tags: 'Mongols' },
-      { id: 'e6', countryId: 'c3', title: 'American Civil War', yearStart: 1861, yearEnd: 1865, category: 'Civil War', type: 'Period', description: 'Internal conflict between Northern Union and Southern Confederacy.', tags: 'Lincoln' },
-      { id: 'e7', countryId: 'c4', title: 'Fall of Constantinople', yearStart: 1453, yearEnd: null, category: 'Invasion', type: 'Event', description: 'Ottomans conquer Byzantine capital.', tags: 'Mehmed II' },
-      { id: 'e8', countryId: 'c5', title: 'Global Climate Accord', yearStart: 2085, yearEnd: null, category: 'Founding', type: 'Event', description: 'Unification of planetary council.', tags: 'Future' },
+      { id: 'e3', countryId: 'c1', title: 'Construction of the Colosseum', yearStart: 70, yearEnd: 80, category: 'Building', type: 'Period', description: 'Amphitheatre construction initiated under Vespasian.', tags: 'Architecture' },
+      { id: 'e4', countryId: 'c2', title: 'Mongol Invasions of Japan', yearStart: 1274, yearEnd: 1281, category: 'Invasion', type: 'Period', description: 'Kublai Khan attempts invasions defeated by Kamikaze typhoons.', tags: 'Mongols' },
+      { id: 'e5', countryId: 'c3', title: 'American Civil War', yearStart: 1861, yearEnd: 1865, category: 'Civil War', type: 'Period', description: 'Internal conflict between Northern Union and Southern Confederacy.', tags: 'Lincoln' },
     ];
 
     function App() {
