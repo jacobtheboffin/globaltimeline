@@ -14,7 +14,7 @@
 
   <style>
     body {
-      background-color: #0f172a;
+      background-color: #090d16;
       color: #f8fafc;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
@@ -46,7 +46,11 @@
       Disaster: { label: 'Disaster', bg: 'bg-purple-950/80', border: 'border-purple-600', badge: 'bg-purple-900/60 text-purple-300 border-purple-700', highlight: 'bg-purple-950/30 border-purple-800/40' },
       Founding: { label: 'Founding', bg: 'bg-emerald-950/80', border: 'border-emerald-600', badge: 'bg-emerald-900/60 text-emerald-300 border-emerald-700', highlight: 'bg-emerald-950/30 border-emerald-800/40' },
       'Civil War': { label: 'Civil War', bg: 'bg-rose-950/80', border: 'border-rose-600', badge: 'bg-rose-900/60 text-rose-300 border-rose-700', highlight: 'bg-rose-950/30 border-rose-800/40' },
+      Policy: { label: 'Policy', bg: 'bg-cyan-950/80', border: 'border-cyan-600', badge: 'bg-cyan-900/60 text-cyan-300 border-cyan-700', highlight: 'bg-cyan-950/30 border-cyan-800/40' },
+      Treaty: { label: 'Treaty', bg: 'bg-sky-950/80', border: 'border-sky-600', badge: 'bg-sky-900/60 text-sky-300 border-sky-700', highlight: 'bg-sky-950/30 border-sky-800/40' },
       'Policy/Treaty': { label: 'Policy / Treaty', bg: 'bg-cyan-950/80', border: 'border-cyan-600', badge: 'bg-cyan-900/60 text-cyan-300 border-cyan-700', highlight: 'bg-cyan-950/30 border-cyan-800/40' },
+      Era: { label: 'Era', bg: 'bg-teal-950/80', border: 'border-teal-600', badge: 'bg-teal-900/60 text-teal-300 border-teal-700', highlight: 'bg-teal-950/30 border-teal-800/40' },
+      Economic: { label: 'Economic', bg: 'bg-emerald-950/80', border: 'border-emerald-600', badge: 'bg-emerald-900/60 text-emerald-300 border-emerald-700', highlight: 'bg-emerald-950/30 border-emerald-800/40' },
       'Era/Economic': { label: 'Era / Economic', bg: 'bg-teal-950/80', border: 'border-teal-600', badge: 'bg-teal-900/60 text-teal-300 border-teal-700', highlight: 'bg-teal-950/30 border-teal-800/40' },
       Building: { label: 'Building', bg: 'bg-blue-950/80', border: 'border-blue-600', badge: 'bg-blue-900/60 text-blue-300 border-blue-700', highlight: 'bg-blue-950/30 border-blue-800/40' },
       Transfer: { label: 'Transfer', bg: 'bg-indigo-950/80', border: 'border-indigo-600', badge: 'bg-indigo-900/60 text-indigo-300 border-indigo-700', highlight: 'bg-indigo-950/30 border-indigo-800/40' },
@@ -60,6 +64,7 @@
     };
 
     const MILITARY_CATEGORIES = ['War', 'Invasion', 'Skirmish', 'Raid', 'Civil War'];
+    const POSSESSIVE_CATEGORIES = ['Transfer', 'Purchase', 'Claim', 'Settled'];
 
     const INITIAL_COUNTRIES = [
       { id: 'c1', name: 'Roman Empire', era: 'Past', continent: 'Europe / Mediterranean', lat: 41.9, lng: 12.5 },
@@ -70,9 +75,9 @@
     ];
 
     const INITIAL_EVENTS = [
-      { id: 'e1', countryId: 'c1', title: 'Pax Romana Period', yearStart: -27, yearEnd: 180, category: 'Era/Economic', type: 'Period', description: 'Golden age of Roman peace and stability spanning two centuries.', tags: 'Empire, Golden Age', outcome: '' },
-      { id: 'e2', countryId: 'c1', title: 'Establishment of Roman Empire', yearStart: -27, yearEnd: null, category: 'Founding', type: 'Event', description: 'Augustus becomes the first emperor.', tags: 'Augustus', outcome: '' },
-      { id: 'e3', countryId: 'c3', title: 'Louisiana Purchase', yearStart: 1803, yearEnd: null, category: 'Purchase', type: 'Event', description: 'Acquisition of the territory of Louisiana from France.', tags: 'Territory, France', outcome: '' },
+      { id: 'e1', countryId: 'c1', title: 'Pax Romana Period', yearStart: -27, yearEnd: 180, category: 'Era', type: 'Period', description: 'Golden age of Roman peace and stability spanning two centuries.', tags: 'Empire, Golden Age', outcome: '', aggressorId: '', customerId: '' },
+      { id: 'e2', countryId: 'c1', title: 'Establishment of Roman Empire', yearStart: -27, yearEnd: null, category: 'Founding', type: 'Event', description: 'Augustus becomes the first emperor.', tags: 'Augustus', outcome: '', aggressorId: '', customerId: '' },
+      { id: 'e3', countryId: 'c3', title: 'Louisiana Purchase', yearStart: 1803, yearEnd: null, category: 'Purchase', type: 'Event', description: 'Acquisition of the territory of Louisiana from France.', tags: 'Territory, France', outcome: '', aggressorId: '', customerId: 'c4' },
     ];
 
     function SearchableDropdown({ countries, value, onChange, placeholder = "Select country..." }) {
@@ -107,7 +112,7 @@
             onClick={() => setIsOpen(!isOpen)}
             className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 cursor-pointer flex justify-between items-center"
           >
-            <span>{selectedCountry ? `${selectedCountry.name} (${selectedCountry.era})` : placeholder}</span>
+            <span>{selectedCountry ? selectedCountry.name : placeholder}</span>
             <span className="text-xs text-slate-400">▼</span>
           </div>
 
@@ -138,7 +143,6 @@
                       className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-800 flex justify-between items-center ${value === c.id ? 'bg-emerald-950/60 text-emerald-300 font-medium' : 'text-slate-200'}`}
                     >
                       <span>{c.name}</span>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-widest">{c.era}</span>
                     </div>
                   ))
                 )}
@@ -149,7 +153,7 @@
       );
     }
 
-    // Interactive Globe Canvas Component
+    // Fully Working Interactive Globe Canvas Component
     function GlobeCanvas({ country }) {
       const canvasRef = useRef(null);
       const [rotation, setRotation] = useState(0);
@@ -166,12 +170,12 @@
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           const centerX = canvas.width / 2;
           const centerY = canvas.height / 2;
-          const radius = 90;
+          const radius = 80;
 
-          // Draw Globe Sphere
-          const gradient = ctx.createRadialGradient(centerX - 30, centerY - 30, 10, centerX, centerY, radius);
+          // Draw Globe Sphere Base
+          const gradient = ctx.createRadialGradient(centerX - 25, centerY - 25, 10, centerX, centerY, radius);
           gradient.addColorStop(0, '#1e293b');
-          gradient.addColorStop(1, '#090d16');
+          gradient.addColorStop(1, '#020617');
           ctx.beginPath();
           ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
           ctx.fillStyle = gradient;
@@ -181,16 +185,16 @@
           ctx.stroke();
           ctx.closePath();
 
-          // Draw latitude/longitude grid lines for 3D effect
+          // Draw grid lines
           ctx.strokeStyle = '#1e293b';
           ctx.lineWidth = 1;
           for (let i = -2; i <= 2; i++) {
             ctx.beginPath();
-            ctx.arc(centerX, centerY + i * 30, radius * Math.cos(i * 0.3), 0, Math.PI * 2);
+            ctx.arc(centerX, centerY + i * 25, radius * Math.cos(i * 0.3), 0, Math.PI * 2);
             ctx.stroke();
           }
 
-          // If country has coordinates, plot marker on globe
+          // Render country target pin
           if (country && typeof country.lat === 'number' && typeof country.lng === 'number') {
             const phi = (90 - country.lat) * (Math.PI / 180);
             const theta = (country.lng + rotation) * (Math.PI / 180);
@@ -199,17 +203,17 @@
             const y = centerY + radius * Math.cos(phi);
             const z = Math.sin(phi) * Math.sin(theta);
 
-            if (z > -0.2) { // Front hemisphere check
+            if (z > -0.3) {
+              // Glowing Pin Marker
               ctx.beginPath();
               ctx.arc(x, y, 6, 0, Math.PI * 2);
               ctx.fillStyle = '#10b981';
               ctx.shadowColor = '#10b981';
-              ctx.shadowBlur = 10;
+              ctx.shadowBlur = 12;
               ctx.fill();
               ctx.shadowBlur = 0;
               ctx.closePath();
 
-              // Pulsing ring
               ctx.beginPath();
               ctx.arc(x, y, 12, 0, Math.PI * 2);
               ctx.strokeStyle = '#34d399';
@@ -220,7 +224,7 @@
           }
 
           if (!isDragging.current) {
-            setRotation(prev => prev + 0.2);
+            setRotation(prev => prev + 0.3);
           }
           animationFrameId = requestAnimationFrame(render);
         };
@@ -237,7 +241,7 @@
       const handleMouseMove = (e) => {
         if (!isDragging.current) return;
         const deltaX = e.clientX - lastMouseX.current;
-        setRotation(prev => prev + deltaX * 0.5);
+        setRotation(prev => prev + deltaX * 0.6);
         lastMouseX.current = e.clientX;
       };
 
@@ -246,25 +250,23 @@
       };
 
       return (
-        <div className="flex flex-col items-center bg-slate-950/80 border border-slate-800 p-4 rounded-xl shadow-inner">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest mb-2">Interactive Globe Locator</span>
+        <div className="flex flex-col items-center bg-slate-950/80 border border-slate-800 p-3 rounded-xl shadow-inner">
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">Global Location</span>
           <canvas
             ref={canvasRef}
-            width={220}
-            height={200}
+            width={180}
+            height={160}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             className="cursor-grab active:cursor-grabbing rounded-lg bg-slate-950"
           ></canvas>
-          <span className="text-[10px] text-slate-500 mt-2">Click & drag to rotate globe</span>
         </div>
       );
     }
 
     function App() {
-      // Navigation State: 'viewer' or 'admin'
       const [viewMode, setViewMode] = useState('viewer');
 
       const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -291,6 +293,8 @@
 
       // Viewer state
       const [viewerCountryId, setViewerCountryId] = useState(() => countries[0]?.id || '');
+      // Admin dashboard selected country filter ('ALL' or specific country ID)
+      const [adminSelectedCountry, setAdminSelectedCountry] = useState('ALL');
 
       useEffect(() => {
         localStorage.setItem('world_history_countries', JSON.stringify(countries));
@@ -300,8 +304,6 @@
         localStorage.setItem('world_history_events', JSON.stringify(events));
       }, [events]);
 
-      const [selectedCategory, setSelectedCategory] = useState('ALL');
-      const [searchQuery, setSearchQuery] = useState('');
       const [sortAscending, setSortAscending] = useState(true);
 
       const [isModalOpen, setIsModalOpen] = useState(false);
@@ -318,6 +320,8 @@
         description: '',
         tags: '',
         outcome: '',
+        aggressorId: '',
+        customerId: '',
       });
 
       const [newCountry, setNewCountry] = useState({ name: '', era: 'Present', continent: '', lat: 0, lng: 0 });
@@ -363,6 +367,7 @@
         setEditingItem(null);
         const defaultCountry = 
           (lastUsedCountryId && countries.some(c => c.id === lastUsedCountryId) && lastUsedCountryId) ||
+          (viewerCountryId) ||
           (countries[0]?.id || '');
 
         setFormData({ 
@@ -375,6 +380,8 @@
           description: '', 
           tags: '',
           outcome: '',
+          aggressorId: '',
+          customerId: '',
         });
         setIsModalOpen(true);
       };
@@ -391,6 +398,8 @@
           description: item.description || '',
           tags: item.tags || '',
           outcome: item.outcome || '',
+          aggressorId: item.aggressorId || '',
+          customerId: item.customerId || '',
         });
         setIsModalOpen(true);
       };
@@ -400,6 +409,7 @@
         if (!formData.title || !formData.countryId || formData.yearStart === '') return;
 
         const isMilitary = MILITARY_CATEGORIES.includes(formData.category);
+        const isPossessive = POSSESSIVE_CATEGORIES.includes(formData.category);
 
         const payload = {
           id: editingItem ? editingItem.id : 'e_' + Date.now(),
@@ -412,6 +422,8 @@
           description: formData.description,
           tags: formData.tags,
           outcome: isMilitary ? formData.outcome : '',
+          aggressorId: isMilitary ? formData.aggressorId : '',
+          customerId: isPossessive ? formData.customerId : '',
         };
 
         if (editingItem) {
@@ -454,27 +466,26 @@
           if (viewerCountryId === countryId && countries.length > 1) {
             setViewerCountryId(countries.find(c => c.id !== countryId)?.id || '');
           }
+          if (adminSelectedCountry === countryId) {
+            setAdminSelectedCountry('ALL');
+          }
         }
       };
 
-      // Viewer timeline computation with proportional sizes & relative contracted spacing
+      // Viewer timeline computation
       const viewerEvents = useMemo(() => {
         const targetCountryEvents = events
           .filter(ev => ev.countryId === viewerCountryId)
           .sort((a, b) => (sortAscending ? a.yearStart - b.yearStart : b.yearStart - a.yearStart));
 
         return targetCountryEvents.map((ev, idx, arr) => {
-          // Calculate duration for proportional item size
           const duration = ev.yearEnd !== null && !isNaN(ev.yearEnd) ? Math.max(1, Math.abs(ev.yearEnd - ev.yearStart)) : 1;
-          // Scale factor: 1 year = ~4px height, with logarithmic or compressed dampening for massive epochs
           const proportionalHeight = Math.min(Math.max(duration * 4, 32), 240);
 
-          // Calculate relative gap distance from previous event
           let gapPx = 30;
           if (idx > 0) {
             const prevYear = arr[idx - 1].yearStart;
             const yearDiff = Math.abs(ev.yearStart - prevYear);
-            // Compressed relative scale for gaps to prevent excessive empty scrolling
             gapPx = Math.min(Math.max(Math.sqrt(yearDiff) * 8, 20), 180);
           }
 
@@ -488,29 +499,36 @@
 
       const selectedViewerCountryObj = countries.find(c => c.id === viewerCountryId);
 
+      // Admin filtered events
+      const adminFilteredEvents = useMemo(() => {
+        return events
+          .filter(ev => adminSelectedCountry === 'ALL' || ev.countryId === adminSelectedCountry)
+          .sort((a, b) => (sortAscending ? a.yearStart - b.yearStart : b.yearStart - a.yearStart));
+      }, [events, adminSelectedCountry, sortAscending]);
+
       return (
         <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Header & View Switcher */}
-          <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
+          {/* Aesthetic Title and Central Edit Button Header */}
+          <header className="flex flex-col items-center justify-center border-b border-slate-800 pb-8 mb-8 gap-6 text-center">
             <div>
-              <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-                <span className="text-emerald-400">🌐 World History</span> Timeline Viewer
+              <h1 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 drop-shadow-sm">
+                Chronicles of World History
               </h1>
-              <p className="text-slate-400 text-sm mt-1">Interactive historical proportions, relative timeline spacing, and 3D globe locator.</p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full">
               {viewMode === 'viewer' ? (
                 isLoggedIn ? (
                   <button
                     onClick={() => setViewMode('admin')}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-950/50 transition transform hover:scale-105"
                   >
-                    ⚙️ Go to Edit Timeline
+                    ⚙️ Edit Timeline
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowLoginModal(true)}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                    className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-amber-950/50 transition transform hover:scale-105"
                   >
                     🔒 Edit Timeline (Login)
                   </button>
@@ -518,7 +536,7 @@
               ) : (
                 <button
                   onClick={() => setViewMode('viewer')}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-950/50 transition transform hover:scale-105"
                 >
                   👁️ Switch to Timeline Viewer
                 </button>
@@ -529,12 +547,12 @@
           {/* VIEW MODE 1: TIMELINE VIEWER */}
           {viewMode === 'viewer' && (
             <div className="space-y-8">
-              {/* Controls Bar: Country Selector + Random + Globe */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+              {/* Controls Bar */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
                 <div className="lg:col-span-2 space-y-4 flex flex-col justify-center">
                   <div>
                     <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                      Select Country / Civilization
+                      Select Country
                     </label>
                     <div className="flex gap-3 items-center">
                       <div className="flex-1">
@@ -542,13 +560,12 @@
                           countries={countries}
                           value={viewerCountryId}
                           onChange={(id) => setViewerCountryId(id)}
-                          placeholder="Search or select country..."
+                          placeholder="Select Country..."
                         />
                       </div>
                       <button
                         onClick={handleRandomCountry}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1.5"
-                        title="Pick a random country"
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1.5 whitespace-nowrap"
                       >
                         🎲 Random
                       </button>
@@ -556,9 +573,6 @@
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 pt-2">
-                    <span className="text-xs text-slate-400">
-                      Era: <strong className="text-slate-200">{selectedViewerCountryObj?.era || 'N/A'}</strong>
-                    </span>
                     <span className="text-xs text-slate-400">
                       Region: <strong className="text-slate-200">{selectedViewerCountryObj?.continent || 'Global'}</strong>
                     </span>
@@ -571,7 +585,7 @@
                   </div>
                 </div>
 
-                {/* Interactive Globe Card */}
+                {/* Globe Card */}
                 <div className="flex justify-center">
                   <GlobeCanvas country={selectedViewerCountryObj} />
                 </div>
@@ -579,12 +593,12 @@
 
               {/* Proportional Timeline Canvas */}
               <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <span>🏛️</span> {selectedViewerCountryObj?.name || 'Selected Nation'} Timeline
+                <div className="flex flex-col items-center justify-center mb-8 pb-4 border-b border-slate-800 text-center">
+                  <h3 className="text-2xl font-black text-white tracking-wide">
+                    {selectedViewerCountryObj?.name || 'Selected Nation'}
                   </h3>
-                  <span className="text-xs font-mono bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
-                    {viewerEvents.length} recorded items (Proportional scale)
+                  <span className="text-xs font-mono text-emerald-400 mt-1 font-semibold">
+                    {viewerEvents.length} item{viewerEvents.length !== 1 ? 's' : ''} recorded
                   </span>
                 </div>
 
@@ -602,13 +616,16 @@
                         (p) => p.id !== ev.id && ev.yearStart >= p.yearStart && ev.yearStart <= p.yearEnd
                       );
 
+                      const hostCountryName = selectedViewerCountryObj?.name || 'Country';
+                      const aggressorObj = countries.find(c => c.id === ev.aggressorId);
+                      const customerObj = countries.find(c => c.id === ev.customerId);
+
                       return (
                         <div
                           key={ev.id}
                           style={{ marginTop: idx === 0 ? '0px' : `${ev.gapPx}px` }}
                           className="relative transition-all"
                         >
-                          {/* Period Background Highlight */}
                           {overlappingPeriods.map((period) => {
                             const pStyle = CATEGORIES[period.category] || CATEGORIES['Era/Economic'];
                             return (
@@ -625,48 +642,52 @@
 
                           <div className={`absolute -left-[37px] top-4 w-4 h-4 rounded-full border-2 ${catStyle.border} bg-slate-950 z-10`}></div>
 
-                          {/* Proportional sizing card */}
                           <div
                             style={{ minHeight: `${ev.proportionalHeight}px` }}
                             className={`relative z-10 p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-xl flex flex-col justify-between`}
                           >
                             <div>
-                              <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
+                              <div className="flex flex-wrap justify-between items-center mb-3 gap-2">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
-                                    {formatYear(ev.yearStart)}{ev.yearEnd ? ` – ${formatYear(ev.yearEnd)}` : ''}
+                                    {formatYear(ev.yearStart)}
+                                    {ev.yearEnd !== null && ` – ${formatYear(ev.yearEnd)}`}
                                   </span>
                                   <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${catStyle.badge}`}>
                                     {catStyle.label}
                                   </span>
-                                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">
-                                    {isPeriod ? `Period (${Math.abs((ev.yearEnd || ev.yearStart) - ev.yearStart)} yrs)` : 'Single Event'}
-                                  </span>
+                                  
+                                  {/* Dynamic Outcome tag */}
                                   {ev.outcome && (
                                     <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
                                       ev.outcome === 'Win' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
                                       ev.outcome === 'Loss' ? 'bg-red-950 text-red-300 border-red-700' :
                                       'bg-amber-950 text-amber-300 border-amber-700'
                                     }`}>
-                                      Outcome: {ev.outcome}
+                                      {hostCountryName} {ev.outcome === 'Win' ? 'won' : ev.outcome === 'Loss' ? 'lost' : 'drew'}
+                                    </span>
+                                  )}
+
+                                  {/* Aggressor display */}
+                                  {aggressorObj && (
+                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-orange-950 text-orange-300 border border-orange-700">
+                                      Aggressor: {aggressorObj.name}
+                                    </span>
+                                  )}
+
+                                  {/* Customer display */}
+                                  {customerObj && (
+                                    <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-950 text-indigo-300 border border-indigo-700">
+                                      Customer: {customerObj.name}
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              <h4 className="text-lg font-bold text-white mb-1">{ev.title}</h4>
+                              {/* Event Name takes up entire timeline entry header */}
+                              <h4 className="text-xl font-extrabold text-white w-full">{ev.title}</h4>
                               {ev.description && <p className="text-slate-300 text-sm mt-2">{ev.description}</p>}
                             </div>
-
-                            {ev.tags && (
-                              <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-800/60">
-                                {ev.tags.split(',').map((tag, i) => (
-                                  <span key={i} className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded font-mono">
-                                    #{tag.trim()}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         </div>
                       );
@@ -680,77 +701,107 @@
           {/* VIEW MODE 2: ADMIN EDIT DASHBOARD */}
           {viewMode === 'admin' && (
             <div className="space-y-8">
-              <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                <span className="text-sm font-semibold text-emerald-400">🔓 Logged in as Admin (jacobtheboffin)</span>
-                <div className="flex gap-3">
-                  <button onClick={() => setIsAddingCountry(true)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg border border-slate-700">+ Add Nation</button>
-                  <button onClick={openAddModal} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-semibold">+ Insert Event / Period</button>
-                  <button onClick={handleLogout} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-semibold rounded-lg border border-red-800">Logout</button>
-                </div>
-              </div>
-
-              {/* Categories Legend */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-3">Event & Period Categories</span>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(CATEGORIES).map(([key, cat]) => (
-                    <span key={key} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${cat.badge}`}>
-                      {cat.label}
-                    </span>
-                  ))}
+              {/* Phone Responsive Admin Header Top Bar */}
+              <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-3">
+                <span className="text-xs sm:text-sm font-semibold text-emerald-400 text-center sm:text-left">🔓 Logged in as Admin</span>
+                <div className="flex flex-wrap justify-center gap-2 w-full sm:w-auto">
+                  <button onClick={() => setIsAddingCountry(true)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700">+ Nation</button>
+                  <button onClick={openAddModal} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg">+ Item</button>
+                  <button onClick={() => setViewMode('viewer')} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg">Viewer</button>
+                  <button onClick={handleLogout} className="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-300 text-xs rounded-lg border border-red-800">Logout</button>
                 </div>
               </div>
 
               {/* Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 h-fit">
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Nations Roster ({countries.length})</h3>
-                  <div className="space-y-2">
-                    {sortedCountriesAlphabetical.map((c) => (
-                      <div
-                        key={c.id}
-                        className="p-3 rounded-lg border bg-slate-950 border-slate-800 flex justify-between items-center text-sm font-semibold text-slate-200"
+                {/* Nation Roster with Region in Description & Filter */}
+                <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 h-fit space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Nations ({countries.length})</h3>
+                    {adminSelectedCountry !== 'ALL' && (
+                      <button 
+                        onClick={() => setAdminSelectedCountry('ALL')} 
+                        className="text-[10px] text-emerald-400 underline hover:text-emerald-300"
                       >
-                        <span>{c.name}</span>
-                        <button
-                          onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
-                          title="Delete country"
-                          className="hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                        Show All
+                      </button>
+                    )}
                   </div>
-                </div>
-
-                <div className="lg:col-span-3">
-                  <div className="space-y-4">
-                    {events.map((ev) => {
-                      const country = countries.find((c) => c.id === ev.countryId);
-                      const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                    {sortedCountriesAlphabetical.map((c) => {
+                      const isSelected = adminSelectedCountry === c.id;
                       return (
-                        <div key={ev.id} className={`p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md flex justify-between items-start`}>
+                        <div
+                          key={c.id}
+                          onClick={() => setAdminSelectedCountry(isSelected ? 'ALL' : c.id)}
+                          className={`p-3 rounded-lg border cursor-pointer transition flex justify-between items-center ${
+                            isSelected ? 'bg-emerald-950/60 border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                          }`}
+                        >
                           <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
-                                {formatYear(ev.yearStart)}{ev.yearEnd ? ` – ${formatYear(ev.yearEnd)}` : ''}
-                              </span>
-                              <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${catStyle.badge}`}>
-                                {catStyle.label}
-                              </span>
-                            </div>
-                            <h4 className="text-lg font-bold text-white">{ev.title}</h4>
-                            {country && <span className="text-xs text-slate-400">🏛️ {country.name}</span>}
+                            <div className="text-sm font-semibold text-slate-200">{c.name}</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">Region: {c.continent || 'Global'}</div>
                           </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => openEditModal(ev)} className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs rounded border border-slate-700">Edit</button>
-                            <button onClick={() => handleDeleteItem(ev.id)} className="px-2.5 py-1 bg-red-950 hover:bg-red-900 text-red-300 text-xs rounded border border-red-800">Delete</button>
-                          </div>
+                          <button
+                            onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
+                            title="Delete country"
+                            className="hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition ml-2"
+                          >
+                            ✕
+                          </button>
                         </div>
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Admin Entries Stream */}
+                <div className="lg:col-span-3">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-xs text-slate-400">
+                      Showing entries for: <strong className="text-white">{adminSelectedCountry === 'ALL' ? 'All Nations' : countries.find(c => c.id === adminSelectedCountry)?.name}</strong>
+                    </span>
+                    <button
+                      onClick={() => setSortAscending(!sortAscending)}
+                      className="text-xs bg-slate-900 border border-slate-800 text-slate-300 px-3 py-1.5 rounded-lg"
+                    >
+                      Sort: {sortAscending ? 'Old → New' : 'New → Old'}
+                    </button>
+                  </div>
+
+                  {adminFilteredEvents.length === 0 ? (
+                    <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-xl text-slate-400">
+                      No entries found for this selection.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {adminFilteredEvents.map((ev) => {
+                        const country = countries.find((c) => c.id === ev.countryId);
+                        const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
+                        return (
+                          <div key={ev.id} className={`p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md flex justify-between items-start`}>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
+                                  {formatYear(ev.yearStart)}
+                                  {ev.yearEnd !== null && ` – ${formatYear(ev.yearEnd)}`}
+                                </span>
+                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${catStyle.badge}`}>
+                                  {catStyle.label}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-bold text-white mt-1">{ev.title}</h4>
+                              {country && <span className="text-xs text-slate-400">🏛️ {country.name}</span>}
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => openEditModal(ev)} className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs rounded border border-slate-700">Edit</button>
+                              <button onClick={() => handleDeleteItem(ev.id)} className="px-2.5 py-1 bg-red-950 hover:bg-red-900 text-red-300 text-xs rounded border border-red-800">Delete</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -793,10 +844,10 @@
             </div>
           )}
 
-          {/* Add / Edit Event / Period Modal */}
+          {/* Add / Edit Event Modal */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold text-white mb-4">{editingItem ? 'Edit Timeline Item' : 'Add Timeline Item'}</h3>
                 <form onSubmit={handleSaveItem} className="space-y-3">
                   <div>
@@ -817,7 +868,7 @@
                       countries={countries}
                       value={formData.countryId}
                       onChange={(id) => setFormData({ ...formData, countryId: id })}
-                      placeholder="Search and select country..."
+                      placeholder="Select country..."
                     />
                   </div>
 
@@ -835,7 +886,7 @@
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-400 mb-1">Start Year (Negative = BCE) *</label>
+                      <label className="block text-xs font-semibold text-slate-400 mb-1">Start Year *</label>
                       <input
                         type="number"
                         required
@@ -851,7 +902,7 @@
                       </label>
                       <input
                         type="number"
-                        placeholder={formData.type === 'Period' ? "e.g. 180" : "Leave blank if Event"}
+                        placeholder="End year"
                         required={formData.type === 'Period'}
                         value={formData.yearEnd}
                         onChange={(e) => setFormData({ ...formData, yearEnd: e.target.value })}
@@ -867,23 +918,66 @@
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
                     >
-                      {Object.keys(CATEGORIES).map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
+                      <option value="War">War</option>
+                      <option value="Invasion">Invasion</option>
+                      <option value="Disaster">Disaster</option>
+                      <option value="Founding">Founding</option>
+                      <option value="Civil War">Civil War</option>
+                      <option value="Policy">Policy</option>
+                      <option value="Treaty">Treaty</option>
+                      <option value="Policy/Treaty">Policy / Treaty (Legacy)</option>
+                      <option value="Era">Era</option>
+                      <option value="Economic">Economic</option>
+                      <option value="Era/Economic">Era / Economic (Legacy)</option>
+                      <option value="Building">Building</option>
+                      <option value="Transfer">Transfer</option>
+                      <option value="Skirmish">Skirmish</option>
+                      <option value="Event">Event</option>
+                      <option value="Raid">Raid</option>
+                      <option value="Settled">Settled</option>
+                      <option value="Claim">Claim</option>
+                      <option value="Surrender/Loss">Surrender / Loss</option>
+                      <option value="Purchase">Purchase</option>
                     </select>
                   </div>
 
                   {MILITARY_CATEGORIES.includes(formData.category) && (
-                    <div>
-                      <label className="block text-xs font-semibold text-amber-400 mb-1">Military Outcome</label>
-                      <select
-                        value={formData.outcome}
-                        onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
-                        className="w-full bg-slate-950 border border-amber-800/60 rounded px-3 py-2 text-sm text-amber-200 focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="">None / Not Applicable</option>
-                        <option value="Win">Win</option>
-                        <option value="Loss">Loss</option>
-                        <option value="Draw">Draw</option>
-                      </select>
+                    <div className="space-y-3 p-3 bg-slate-950/60 rounded-lg border border-slate-800">
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-400 mb-1">Military Outcome</label>
+                        <select
+                          value={formData.outcome}
+                          onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
+                          className="w-full bg-slate-950 border border-amber-800/60 rounded px-3 py-2 text-sm text-amber-200 focus:outline-none focus:border-amber-500"
+                        >
+                          <option value="">None / Not Applicable</option>
+                          <option value="Win">Win</option>
+                          <option value="Loss">Loss</option>
+                          <option value="Draw">Draw</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-400 mb-1">Aggressor Country</label>
+                        <SearchableDropdown
+                          countries={countries}
+                          value={formData.aggressorId}
+                          onChange={(id) => setFormData({ ...formData, aggressorId: id })}
+                          placeholder="Select aggressor..."
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {POSSESSIVE_CATEGORIES.includes(formData.category) && (
+                    <div className="p-3 bg-slate-950/60 rounded-lg border border-slate-800">
+                      <label className="block text-xs font-semibold text-indigo-400 mb-1">Customer / Counterparty Country</label>
+                      <SearchableDropdown
+                        countries={countries}
+                        value={formData.customerId}
+                        onChange={(id) => setFormData({ ...formData, customerId: id })}
+                        placeholder="Select customer/counterparty..."
+                      />
                     </div>
                   )}
 
@@ -918,14 +1012,14 @@
                     <option value="Present">Present</option>
                     <option value="Future">Future</option>
                   </select>
-                  <input type="text" placeholder="Continent / Region" value={newCountry.continent} onChange={(e) => setNewCountry({ ...newCountry, continent: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200" />
+                  <input type="text" placeholder="Region / Continent" value={newCountry.continent} onChange={(e) => setNewCountry({ ...newCountry, continent: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200" />
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">Latitude (Globe Pin)</label>
+                      <label className="block text-[10px] text-slate-400 mb-1">Latitude</label>
                       <input type="number" step="any" placeholder="e.g. 41.9" value={newCountry.lat} onChange={(e) => setNewCountry({ ...newCountry, lat: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">Longitude (Globe Pin)</label>
+                      <label className="block text-[10px] text-slate-400 mb-1">Longitude</label>
                       <input type="number" step="any" placeholder="e.g. 12.5" value={newCountry.lng} onChange={(e) => setNewCountry({ ...newCountry, lng: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200" />
                     </div>
                   </div>
