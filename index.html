@@ -62,11 +62,11 @@
     const MILITARY_CATEGORIES = ['War', 'Invasion', 'Skirmish', 'Raid', 'Civil War'];
 
     const INITIAL_COUNTRIES = [
-      { id: 'c1', name: 'Roman Empire', era: 'Past', continent: 'Europe / Mediterranean' },
-      { id: 'c2', name: 'Japan', era: 'Present', continent: 'Asia' },
-      { id: 'c3', name: 'United States', era: 'Present', continent: 'North America' },
-      { id: 'c4', name: 'Ottoman Empire', era: 'Past', continent: 'Eurasia' },
-      { id: 'c5', name: 'Earth Federation', era: 'Future', continent: 'Global' },
+      { id: 'c1', name: 'Roman Empire', era: 'Past', continent: 'Europe / Mediterranean', lat: 41.9, lng: 12.5 },
+      { id: 'c2', name: 'Japan', era: 'Present', continent: 'Asia', lat: 36.2, lng: 138.25 },
+      { id: 'c3', name: 'United States', era: 'Present', continent: 'North America', lat: 37.09, lng: -95.71 },
+      { id: 'c4', name: 'Ottoman Empire', era: 'Past', continent: 'Eurasia', lat: 41.0, lng: 28.97 },
+      { id: 'c5', name: 'Earth Federation', era: 'Future', continent: 'Global', lat: 0.0, lng: 0.0 },
     ];
 
     const INITIAL_EVENTS = [
@@ -149,7 +149,124 @@
       );
     }
 
+    // Interactive Globe Canvas Component
+    function GlobeCanvas({ country }) {
+      const canvasRef = useRef(null);
+      const [rotation, setRotation] = useState(0);
+      const isDragging = useRef(false);
+      const lastMouseX = useRef(0);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+
+        const render = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const centerX = canvas.width / 2;
+          const centerY = canvas.height / 2;
+          const radius = 90;
+
+          // Draw Globe Sphere
+          const gradient = ctx.createRadialGradient(centerX - 30, centerY - 30, 10, centerX, centerY, radius);
+          gradient.addColorStop(0, '#1e293b');
+          gradient.addColorStop(1, '#090d16');
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.closePath();
+
+          // Draw latitude/longitude grid lines for 3D effect
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1;
+          for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.arc(centerX, centerY + i * 30, radius * Math.cos(i * 0.3), 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // If country has coordinates, plot marker on globe
+          if (country && typeof country.lat === 'number' && typeof country.lng === 'number') {
+            const phi = (90 - country.lat) * (Math.PI / 180);
+            const theta = (country.lng + rotation) * (Math.PI / 180);
+
+            const x = centerX + radius * Math.sin(phi) * Math.cos(theta);
+            const y = centerY + radius * Math.cos(phi);
+            const z = Math.sin(phi) * Math.sin(theta);
+
+            if (z > -0.2) { // Front hemisphere check
+              ctx.beginPath();
+              ctx.arc(x, y, 6, 0, Math.PI * 2);
+              ctx.fillStyle = '#10b981';
+              ctx.shadowColor = '#10b981';
+              ctx.shadowBlur = 10;
+              ctx.fill();
+              ctx.shadowBlur = 0;
+              ctx.closePath();
+
+              // Pulsing ring
+              ctx.beginPath();
+              ctx.arc(x, y, 12, 0, Math.PI * 2);
+              ctx.strokeStyle = '#34d399';
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+              ctx.closePath();
+            }
+          }
+
+          if (!isDragging.current) {
+            setRotation(prev => prev + 0.2);
+          }
+          animationFrameId = requestAnimationFrame(render);
+        };
+
+        render();
+        return () => cancelAnimationFrame(animationFrameId);
+      }, [country, rotation]);
+
+      const handleMouseDown = (e) => {
+        isDragging.current = true;
+        lastMouseX.current = e.clientX;
+      };
+
+      const handleMouseMove = (e) => {
+        if (!isDragging.current) return;
+        const deltaX = e.clientX - lastMouseX.current;
+        setRotation(prev => prev + deltaX * 0.5);
+        lastMouseX.current = e.clientX;
+      };
+
+      const handleMouseUp = () => {
+        isDragging.current = false;
+      };
+
+      return (
+        <div className="flex flex-col items-center bg-slate-950/80 border border-slate-800 p-4 rounded-xl shadow-inner">
+          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-widest mb-2">Interactive Globe Locator</span>
+          <canvas
+            ref={canvasRef}
+            width={220}
+            height={200}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            className="cursor-grab active:cursor-grabbing rounded-lg bg-slate-950"
+          ></canvas>
+          <span className="text-[10px] text-slate-500 mt-2">Click & drag to rotate globe</span>
+        </div>
+      );
+    }
+
     function App() {
+      // Navigation State: 'viewer' or 'admin'
+      const [viewMode, setViewMode] = useState('viewer');
+
       const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return localStorage.getItem('world_history_auth') === 'true';
       });
@@ -172,6 +289,9 @@
         return localStorage.getItem('world_history_last_country') || '';
       });
 
+      // Viewer state
+      const [viewerCountryId, setViewerCountryId] = useState(() => countries[0]?.id || '');
+
       useEffect(() => {
         localStorage.setItem('world_history_countries', JSON.stringify(countries));
       }, [countries]);
@@ -180,7 +300,6 @@
         localStorage.setItem('world_history_events', JSON.stringify(events));
       }, [events]);
 
-      const [selectedCountry, setSelectedCountry] = useState('ALL');
       const [selectedCategory, setSelectedCategory] = useState('ALL');
       const [searchQuery, setSearchQuery] = useState('');
       const [sortAscending, setSortAscending] = useState(true);
@@ -201,7 +320,7 @@
         outcome: '',
       });
 
-      const [newCountry, setNewCountry] = useState({ name: '', era: 'Present', continent: '' });
+      const [newCountry, setNewCountry] = useState({ name: '', era: 'Present', continent: '', lat: 0, lng: 0 });
 
       const sortedCountriesAlphabetical = useMemo(() => {
         return [...countries].sort((a, b) => a.name.localeCompare(b.name));
@@ -213,6 +332,7 @@
           setIsLoggedIn(true);
           localStorage.setItem('world_history_auth', 'true');
           setShowLoginModal(false);
+          setViewMode('admin');
           setLoginError('');
           setLoginUser('');
           setLoginPass('');
@@ -224,6 +344,7 @@
       const handleLogout = () => {
         setIsLoggedIn(false);
         localStorage.removeItem('world_history_auth');
+        setViewMode('viewer');
       };
 
       const formatYear = (year) => {
@@ -232,11 +353,16 @@
         return y < 0 ? `${Math.abs(y)} BCE` : `${y} CE`;
       };
 
+      const handleRandomCountry = () => {
+        if (countries.length === 0) return;
+        const randomIndex = Math.floor(Math.random() * countries.length);
+        setViewerCountryId(countries[randomIndex].id);
+      };
+
       const openAddModal = () => {
         setEditingItem(null);
         const defaultCountry = 
           (lastUsedCountryId && countries.some(c => c.id === lastUsedCountryId) && lastUsedCountryId) ||
-          (selectedCountry !== 'ALL' && selectedCountry) ||
           (countries[0]?.id || '');
 
         setFormData({ 
@@ -308,9 +434,16 @@
         e.preventDefault();
         if (!newCountry.name) return;
         const newId = 'c_' + Date.now();
-        setCountries([...countries, { id: newId, name: newCountry.name, era: newCountry.era, continent: newCountry.continent || 'Global' }]);
+        setCountries([...countries, { 
+          id: newId, 
+          name: newCountry.name, 
+          era: newCountry.era, 
+          continent: newCountry.continent || 'Global',
+          lat: parseFloat(newCountry.lat) || 0,
+          lng: parseFloat(newCountry.lng) || 0
+        }]);
         setIsAddingCountry(false);
-        setNewCountry({ name: '', era: 'Present', continent: '' });
+        setNewCountry({ name: '', era: 'Present', continent: '', lat: 0, lng: 0 });
       };
 
       const handleDeleteCountry = (countryId, countryName, e) => {
@@ -318,251 +451,317 @@
         if (confirm(`Are you sure you want to delete "${countryName}"? This will also remove all associated timeline events and periods.`)) {
           setCountries(countries.filter((c) => c.id !== countryId));
           setEvents(events.filter((ev) => ev.countryId !== countryId));
-          if (selectedCountry === countryId) {
-            setSelectedCountry('ALL');
-          }
-          if (lastUsedCountryId === countryId) {
-            setLastUsedCountryId('');
-            localStorage.removeItem('world_history_last_country');
+          if (viewerCountryId === countryId && countries.length > 1) {
+            setViewerCountryId(countries.find(c => c.id !== countryId)?.id || '');
           }
         }
       };
 
-      const filteredEvents = useMemo(() => {
-        return events
-          .filter((ev) => {
-            if (selectedCountry !== 'ALL' && ev.countryId !== selectedCountry) return false;
-            if (selectedCategory !== 'ALL' && ev.category !== selectedCategory) return false;
-            if (searchQuery.trim()) {
-              const q = searchQuery.toLowerCase();
-              const country = countries.find((c) => c.id === ev.countryId);
-              return (
-                ev.title.toLowerCase().includes(q) ||
-                (ev.description && ev.description.toLowerCase().includes(q)) ||
-                (country && country.name.toLowerCase().includes(q))
-              );
-            }
-            return true;
-          })
+      // Viewer timeline computation with proportional sizes & relative contracted spacing
+      const viewerEvents = useMemo(() => {
+        const targetCountryEvents = events
+          .filter(ev => ev.countryId === viewerCountryId)
           .sort((a, b) => (sortAscending ? a.yearStart - b.yearStart : b.yearStart - a.yearStart));
-      }, [events, countries, selectedCountry, selectedCategory, searchQuery, sortAscending]);
 
-      const activePeriods = useMemo(() => {
-        return filteredEvents.filter((item) => item.type === 'Period' && item.yearEnd !== null);
-      }, [filteredEvents]);
+        return targetCountryEvents.map((ev, idx, arr) => {
+          // Calculate duration for proportional item size
+          const duration = ev.yearEnd !== null && !isNaN(ev.yearEnd) ? Math.max(1, Math.abs(ev.yearEnd - ev.yearStart)) : 1;
+          // Scale factor: 1 year = ~4px height, with logarithmic or compressed dampening for massive epochs
+          const proportionalHeight = Math.min(Math.max(duration * 4, 32), 240);
 
-      const exportJSON = () => {
-        const blob = new Blob([JSON.stringify({ countries, events }, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'world_history_timeline.json';
-        a.click();
-      };
+          // Calculate relative gap distance from previous event
+          let gapPx = 30;
+          if (idx > 0) {
+            const prevYear = arr[idx - 1].yearStart;
+            const yearDiff = Math.abs(ev.yearStart - prevYear);
+            // Compressed relative scale for gaps to prevent excessive empty scrolling
+            gapPx = Math.min(Math.max(Math.sqrt(yearDiff) * 8, 20), 180);
+          }
+
+          return { ...ev, proportionalHeight, gapPx };
+        });
+      }, [events, viewerCountryId, sortAscending]);
+
+      const viewerActivePeriods = useMemo(() => {
+        return viewerEvents.filter(item => item.type === 'Period' && item.yearEnd !== null);
+      }, [viewerEvents]);
+
+      const selectedViewerCountryObj = countries.find(c => c.id === viewerCountryId);
 
       return (
         <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Top Bar */}
+          {/* Header & View Switcher */}
           <header className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-                <span className="text-emerald-400">🌐 World History</span> Timeline Generator
+                <span className="text-emerald-400">🌐 World History</span> Timeline Viewer
               </h1>
-              <p className="text-slate-400 text-sm mt-1">Relative spacing, events, and period background highlights across nations.</p>
+              <p className="text-slate-400 text-sm mt-1">Interactive historical proportions, relative timeline spacing, and 3D globe locator.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {isLoggedIn ? (
-                <>
-                  <button onClick={() => setIsAddingCountry(true)} className="px-4 py-2 bg-slate-800 text-slate-200 text-sm rounded-lg border border-slate-700 hover:bg-slate-700">+ Add Nation</button>
-                  <button onClick={openAddModal} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-500 font-semibold">+ Insert Event / Period</button>
-                  <button onClick={handleLogout} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-semibold rounded-lg border border-red-800">Logout</button>
-                </>
+              {viewMode === 'viewer' ? (
+                isLoggedIn ? (
+                  <button
+                    onClick={() => setViewMode('admin')}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                  >
+                    ⚙️ Go to Edit Timeline
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                  >
+                    🔒 Edit Timeline (Login)
+                  </button>
+                )
               ) : (
-                <button onClick={() => setShowLoginModal(true)} className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-lg shadow-lg">🔒 Login to Edit</button>
+                <button
+                  onClick={() => setViewMode('viewer')}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg shadow-lg transition"
+                >
+                  👁️ Switch to Timeline Viewer
+                </button>
               )}
-              <button onClick={exportJSON} className="px-3 py-2 bg-slate-800 text-slate-300 text-xs font-mono rounded-lg border border-slate-700">Export JSON</button>
             </div>
           </header>
 
-          {/* Categories Legend */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-8">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-3">Event & Period Categories</span>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(CATEGORIES).map(([key, cat]) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedCategory(selectedCategory === key ? 'ALL' : key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${cat.badge} ${selectedCategory === key ? 'ring-2 ring-white scale-105' : 'opacity-80 hover:opacity-100'}`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <input
-              type="text"
-              placeholder="Search title, description, or country..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            />
-            <div className="flex flex-col">
-              <select
-                value={selectedCountry}
-                onChange={(e) => setSelectedCountry(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-              >
-                <option value="ALL">All Nations / Empires</option>
-                {sortedCountriesAlphabetical.map((c) => (<option key={c.id} value={c.id}>{c.name} ({c.era})</option>))}
-              </select>
-            </div>
-            <button
-              onClick={() => setSortAscending(!sortAscending)}
-              className="bg-slate-900 border border-slate-800 text-slate-300 py-2 px-3 rounded-lg text-sm hover:bg-slate-800"
-            >
-              Order: {sortAscending ? 'Chronological (Old → New)' : 'Reverse (New → Old)'}
-            </button>
-          </div>
-
-          {/* Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Nations Sidebar */}
-            <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 h-fit">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Nations Roster ({countries.length})</h3>
-              <div className="space-y-2">
-                {sortedCountriesAlphabetical.map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => setSelectedCountry(selectedCountry === c.id ? 'ALL' : c.id)}
-                    className={`p-3 rounded-lg border cursor-pointer group transition ${selectedCountry === c.id ? 'bg-emerald-950/40 border-emerald-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
-                  >
-                    <div className="flex justify-between items-center text-sm font-semibold text-slate-200">
-                      <span>{c.name}</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">{c.era}</span>
-                        {isLoggedIn && (
-                          <button
-                            onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
-                            title="Delete country"
-                            className="opacity-60 group-hover:opacity-100 hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
-                          >
-                            ✕
-                          </button>
-                        )}
+          {/* VIEW MODE 1: TIMELINE VIEWER */}
+          {viewMode === 'viewer' && (
+            <div className="space-y-8">
+              {/* Controls Bar: Country Selector + Random + Globe */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div className="lg:col-span-2 space-y-4 flex flex-col justify-center">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                      Select Country / Civilization
+                    </label>
+                    <div className="flex gap-3 items-center">
+                      <div className="flex-1">
+                        <SearchableDropdown
+                          countries={countries}
+                          value={viewerCountryId}
+                          onChange={(id) => setViewerCountryId(id)}
+                          placeholder="Search or select country..."
+                        />
                       </div>
+                      <button
+                        onClick={handleRandomCountry}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg shadow transition flex items-center gap-1.5"
+                        title="Pick a random country"
+                      >
+                        🎲 Random
+                      </button>
                     </div>
                   </div>
-                ))}
+
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <span className="text-xs text-slate-400">
+                      Era: <strong className="text-slate-200">{selectedViewerCountryObj?.era || 'N/A'}</strong>
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      Region: <strong className="text-slate-200">{selectedViewerCountryObj?.continent || 'Global'}</strong>
+                    </span>
+                    <button
+                      onClick={() => setSortAscending(!sortAscending)}
+                      className="ml-auto text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition"
+                    >
+                      Sort: {sortAscending ? 'Chronological (Old → New)' : 'Reverse (New → Old)'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Interactive Globe Card */}
+                <div className="flex justify-center">
+                  <GlobeCanvas country={selectedViewerCountryObj} />
+                </div>
+              </div>
+
+              {/* Proportional Timeline Canvas */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <span>🏛️</span> {selectedViewerCountryObj?.name || 'Selected Nation'} Timeline
+                  </h3>
+                  <span className="text-xs font-mono bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
+                    {viewerEvents.length} recorded items (Proportional scale)
+                  </span>
+                </div>
+
+                {viewerEvents.length === 0 ? (
+                  <div className="text-center py-20 text-slate-500">
+                    No historical events recorded for {selectedViewerCountryObj?.name}. Switch to Edit mode to add some!
+                  </div>
+                ) : (
+                  <div className="relative border-l-2 border-slate-700 ml-6 pl-8 space-y-4">
+                    {viewerEvents.map((ev, idx) => {
+                      const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
+                      const isPeriod = ev.type === 'Period' || ev.yearEnd !== null;
+
+                      const overlappingPeriods = viewerActivePeriods.filter(
+                        (p) => p.id !== ev.id && ev.yearStart >= p.yearStart && ev.yearStart <= p.yearEnd
+                      );
+
+                      return (
+                        <div
+                          key={ev.id}
+                          style={{ marginTop: idx === 0 ? '0px' : `${ev.gapPx}px` }}
+                          className="relative transition-all"
+                        >
+                          {/* Period Background Highlight */}
+                          {overlappingPeriods.map((period) => {
+                            const pStyle = CATEGORIES[period.category] || CATEGORIES['Era/Economic'];
+                            return (
+                              <div
+                                key={period.id}
+                                className={`absolute -inset-x-4 -inset-y-2 rounded-lg border ${pStyle.highlight} pointer-events-none z-0`}
+                              >
+                                <span className="absolute right-3 top-1 text-[9px] uppercase font-bold tracking-widest text-slate-500">
+                                  Inside Period: {period.title}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          <div className={`absolute -left-[37px] top-4 w-4 h-4 rounded-full border-2 ${catStyle.border} bg-slate-950 z-10`}></div>
+
+                          {/* Proportional sizing card */}
+                          <div
+                            style={{ minHeight: `${ev.proportionalHeight}px` }}
+                            className={`relative z-10 p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-xl flex flex-col justify-between`}
+                          >
+                            <div>
+                              <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
+                                    {formatYear(ev.yearStart)}{ev.yearEnd ? ` – ${formatYear(ev.yearEnd)}` : ''}
+                                  </span>
+                                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${catStyle.badge}`}>
+                                    {catStyle.label}
+                                  </span>
+                                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">
+                                    {isPeriod ? `Period (${Math.abs((ev.yearEnd || ev.yearStart) - ev.yearStart)} yrs)` : 'Single Event'}
+                                  </span>
+                                  {ev.outcome && (
+                                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
+                                      ev.outcome === 'Win' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
+                                      ev.outcome === 'Loss' ? 'bg-red-950 text-red-300 border-red-700' :
+                                      'bg-amber-950 text-amber-300 border-amber-700'
+                                    }`}>
+                                      Outcome: {ev.outcome}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <h4 className="text-lg font-bold text-white mb-1">{ev.title}</h4>
+                              {ev.description && <p className="text-slate-300 text-sm mt-2">{ev.description}</p>}
+                            </div>
+
+                            {ev.tags && (
+                              <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-800/60">
+                                {ev.tags.split(',').map((tag, i) => (
+                                  <span key={i} className="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded font-mono">
+                                    #{tag.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            {/* Timeline Stream */}
-            <div className="lg:col-span-3">
-              {filteredEvents.length === 0 ? (
-                <div className="text-center py-16 bg-slate-900 border border-slate-800 rounded-xl text-slate-400">
-                  No events or periods match the filter.
+          {/* VIEW MODE 2: ADMIN EDIT DASHBOARD */}
+          {viewMode === 'admin' && (
+            <div className="space-y-8">
+              <div className="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <span className="text-sm font-semibold text-emerald-400">🔓 Logged in as Admin (jacobtheboffin)</span>
+                <div className="flex gap-3">
+                  <button onClick={() => setIsAddingCountry(true)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg border border-slate-700">+ Add Nation</button>
+                  <button onClick={openAddModal} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg font-semibold">+ Insert Event / Period</button>
+                  <button onClick={handleLogout} className="px-3 py-2 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-semibold rounded-lg border border-red-800">Logout</button>
                 </div>
-              ) : (
-                <div className="relative border-l-2 border-slate-800 ml-6 pl-6">
-                  {filteredEvents.map((ev, idx) => {
-                    const country = countries.find((c) => c.id === ev.countryId);
-                    const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
-                    const isPeriod = ev.type === 'Period' || ev.yearEnd !== null;
+              </div>
 
-                    let marginTopPx = 0;
-                    if (idx > 0) {
-                      const prevYear = filteredEvents[idx - 1].yearStart;
-                      const yearDiff = Math.abs(ev.yearStart - prevYear);
-                      marginTopPx = Math.min(Math.max(yearDiff * 1.5, 12), 160);
-                    }
+              {/* Categories Legend */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-3">Event & Period Categories</span>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(CATEGORIES).map(([key, cat]) => (
+                    <span key={key} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${cat.badge}`}>
+                      {cat.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-                    const overlappingPeriods = activePeriods.filter(
-                      (p) => p.id !== ev.id && ev.yearStart >= p.yearStart && ev.yearStart <= p.yearEnd
-                    );
-
-                    return (
+              {/* Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 h-fit">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">Nations Roster ({countries.length})</h3>
+                  <div className="space-y-2">
+                    {sortedCountriesAlphabetical.map((c) => (
                       <div
-                        key={ev.id}
-                        style={{ marginTop: `${marginTopPx}px` }}
-                        className="relative group transition-all"
+                        key={c.id}
+                        className="p-3 rounded-lg border bg-slate-950 border-slate-800 flex justify-between items-center text-sm font-semibold text-slate-200"
                       >
-                        {overlappingPeriods.map((period) => {
-                          const pStyle = CATEGORIES[period.category] || CATEGORIES['Era/Economic'];
-                          return (
-                            <div
-                              key={period.id}
-                              className={`absolute -inset-x-4 -inset-y-2 rounded-lg border ${pStyle.highlight} pointer-events-none z-0`}
-                            >
-                              <span className="absolute right-3 top-1 text-[9px] uppercase font-bold tracking-widest text-slate-500">
-                                Inside Period: {period.title}
-                              </span>
-                            </div>
-                          );
-                        })}
+                        <span>{c.name}</span>
+                        <button
+                          onClick={(e) => handleDeleteCountry(c.id, c.name, e)}
+                          title="Delete country"
+                          className="hover:bg-red-900/60 text-slate-400 hover:text-red-300 rounded p-1 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                        <div className={`absolute -left-[31px] top-4 w-4 h-4 rounded-full border-2 ${catStyle.border} bg-slate-950 z-10`}></div>
-
-                        <div className={`relative z-10 p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md`}>
-                          <div className="flex flex-wrap justify-between items-center mb-2 gap-2">
-                            <div className="flex items-center gap-2 flex-wrap">
+                <div className="lg:col-span-3">
+                  <div className="space-y-4">
+                    {events.map((ev) => {
+                      const country = countries.find((c) => c.id === ev.countryId);
+                      const catStyle = CATEGORIES[ev.category] || CATEGORIES.War;
+                      return (
+                        <div key={ev.id} className={`p-5 rounded-xl border ${catStyle.bg} ${catStyle.border} shadow-md flex justify-between items-start`}>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-mono font-bold bg-slate-900 px-2.5 py-1 rounded border border-slate-700">
                                 {formatYear(ev.yearStart)}{ev.yearEnd ? ` – ${formatYear(ev.yearEnd)}` : ''}
                               </span>
                               <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${catStyle.badge}`}>
                                 {catStyle.label}
                               </span>
-                              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">
-                                {isPeriod ? 'Period Range' : 'Single Event'}
-                              </span>
-                              {ev.outcome && (
-                                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
-                                  ev.outcome === 'Win' ? 'bg-emerald-950 text-emerald-300 border-emerald-700' :
-                                  ev.outcome === 'Loss' ? 'bg-red-950 text-red-300 border-red-700' :
-                                  'bg-amber-950 text-amber-300 border-amber-700'
-                                }`}>
-                                  Outcome: {ev.outcome}
-                                </span>
-                              )}
                             </div>
-
-                            {isLoggedIn && (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => openEditModal(ev)}
-                                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium rounded border border-slate-700 transition"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteItem(ev.id)}
-                                  className="px-2.5 py-1 bg-red-950/80 hover:bg-red-900 text-red-300 text-xs font-medium rounded border border-red-800 transition"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
+                            <h4 className="text-lg font-bold text-white">{ev.title}</h4>
+                            {country && <span className="text-xs text-slate-400">🏛️ {country.name}</span>}
                           </div>
-
-                          <h4 className="text-lg font-bold text-white mb-1">{ev.title}</h4>
-                          {country && <span className="text-xs text-slate-400">🏛️ {country.name}</span>}
-                          {ev.description && <p className="text-slate-300 text-sm mt-2">{ev.description}</p>}
+                          <div className="flex gap-2">
+                            <button onClick={() => openEditModal(ev)} className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs rounded border border-slate-700">Edit</button>
+                            <button onClick={() => handleDeleteItem(ev.id)} className="px-2.5 py-1 bg-red-950 hover:bg-red-900 text-red-300 text-xs rounded border border-red-800">Delete</button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Login Modal */}
           {showLoginModal && (
             <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-sm w-full shadow-2xl">
                 <h3 className="text-xl font-bold text-white mb-2">Admin Login</h3>
-                <p className="text-xs text-slate-400 mb-4">Enter credentials to unlock timeline editing features.</p>
+                <p className="text-xs text-slate-400 mb-4">Enter credentials to access timeline editing features.</p>
                 {loginError && <div className="mb-3 p-2 bg-red-950 border border-red-800 text-red-300 text-xs rounded">{loginError}</div>}
                 <form onSubmit={handleLoginSubmit} className="space-y-3">
                   <div>
@@ -627,7 +826,7 @@
                     <input
                       type="text"
                       required
-                      placeholder={formData.type === 'Event' ? "e.g. Battle of Waterloo" : "e.g. Pax Romana"}
+                      placeholder="e.g. Battle of Waterloo"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
@@ -672,7 +871,6 @@
                     </select>
                   </div>
 
-                  {/* Outcome Selector (Visible for Military Categories) */}
                   {MILITARY_CATEGORIES.includes(formData.category) && (
                     <div>
                       <label className="block text-xs font-semibold text-amber-400 mb-1">Military Outcome</label>
@@ -721,6 +919,16 @@
                     <option value="Future">Future</option>
                   </select>
                   <input type="text" placeholder="Continent / Region" value={newCountry.continent} onChange={(e) => setNewCountry({ ...newCountry, continent: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-200" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">Latitude (Globe Pin)</label>
+                      <input type="number" step="any" placeholder="e.g. 41.9" value={newCountry.lat} onChange={(e) => setNewCountry({ ...newCountry, lat: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">Longitude (Globe Pin)</label>
+                      <input type="number" step="any" placeholder="e.g. 12.5" value={newCountry.lng} onChange={(e) => setNewCountry({ ...newCountry, lng: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200" />
+                    </div>
+                  </div>
                   <div className="flex justify-end gap-2 pt-2">
                     <button type="button" onClick={() => setIsAddingCountry(false)} className="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded font-medium">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded font-semibold">Save Country</button>
